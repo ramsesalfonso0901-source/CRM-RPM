@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#17152d">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Listo — Gestor de listados</title>
+  <style>
+    :root {
+      --ink: #17152d;
+      --muted: #716e84;
+      --paper: #f7f6fb;
+      --card: #ffffff;
+      --line: #e8e5f1;
+      --purple: #6c4cff;
+      --purple-dark: #4f32dd;
+      --lime: #c9ff57;
+      --coral: #ff6d63;
+      --yellow: #ffc857;
+      --blue: #49b6ff;
+      --shadow: 0 24px 60px rgba(37, 28, 85, 0.13);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(201, 255, 87, 0.3), transparent 25rem),
+        radial-gradient(circle at 95% 18%, rgba(108, 76, 255, 0.22), transparent 30rem),
+        var(--paper);
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      color: var(--ink);
+      font-size: 1.6rem;
+      font-weight: 1000;
+      background: var(--lime);
+      box-shadow: 0 12px 24px rgba(104, 144, 21, 0.22);
+      transform: rotate(-5deg);
+    }
+
+    .brand h1, .brand p { margin: 0; }
+    .brand h1 { font-size: 1.2rem; }
+    .brand p { color: var(--muted); font-size: 0.84rem; }
+
+    .save-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.75);
+    }
+
+    .save-status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #43cc79;
+      box-shadow: 0 0 0 4px rgba(67, 204, 121, 0.14);
+    }
+
+    .save-status.connecting::before {
+      background: var(--yellow);
+      box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.18);
+    }
+
+    .save-status.offline::before {
+      background: var(--coral);
+      box-shadow: 0 0 0 4px rgba(255, 109, 99, 0.16);
+    }
+
+    .cloud-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .retry-sync {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 13px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 900;
+      background: var(--purple);
+    }
+
+    .connection-alert {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 109, 99, 0.28);
+      border-radius: 18px;
+      background: #fff3f1;
+      box-shadow: 0 10px 24px rgba(162, 55, 48, 0.08);
+    }
+
+    .connection-alert[hidden] { display: none; }
+
+    .connection-alert-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      color: #a9322b;
+      font-weight: 1000;
+      background: #ffd8d4;
+    }
+
+    .connection-alert strong,
+    .connection-alert span { display: block; }
+    .connection-alert span { margin-top: 3px; color: #765a58; font-size: 0.83rem; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 30px;
+      border-radius: var(--radius);
+      color: white;
+      background: linear-gradient(135deg, #17152d 0%, #35268c 60%, #6c4cff 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -85px;
+      bottom: -115px;
+      width: 270px;
+      height: 270px;
+      border-radius: 50%;
+      background: var(--lime);
+      opacity: 0.9;
+    }
+
+    .hero-copy { position: relative; z-index: 1; }
+
+    .eyebrow {
+      display: inline-flex;
+      margin: 0 0 12px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 0.75rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--lime);
+    }
+
+    .hero h2 {
+      max-width: 680px;
+      margin: 0;
+      font-size: clamp(2rem, 4.5vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .hero-copy > p:last-child {
+      max-width: 660px;
+      margin: 15px 0 0;
+      color: rgba(255, 255, 255, 0.76);
+    }
+
+    .hero-score {
+      position: relative;
+      z-index: 1;
+      min-width: 175px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-score strong { display: block; font-size: 2.5rem; line-height: 1; }
+    .hero-score span {
+      display: block;
+      margin-top: 6px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 10px 30px rgba(37, 28, 85, 0.07);
+    }
+
+    .metric span { color: var(--muted); font-size: 0.82rem; font-weight: 800; }
+    .metric strong { display: block; margin-top: 5px; font-size: 1.85rem; line-height: 1; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.91);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      overflow: hidden;
+    }
+
+    .sidebar-head, .content-head {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sidebar-head h3, .content-head h3, .sidebar-head p, .content-head p { margin: 0; }
+    .sidebar-head h3, .content-head h3 { font-size: 1.1rem; }
+    .sidebar-head p, .content-head p { margin-top: 4px; color: var(--muted); font-size: 0.84rem; }
+
+    .new-list-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 13px;
+      color: var(--ink);
+      background: white;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 4px rgba(108, 76, 255, 0.12);
+    }
+
+    .primary, .secondary, .icon-btn {
+      border: 0;
+      border-radius: 14px;
+      font-weight: 900;
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    .primary {
+      padding: 12px 16px;
+      color: white;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      box-shadow: 0 10px 20px rgba(108, 76, 255, 0.23);
+    }
+
+    .secondary { padding: 10px 13px; color: var(--purple); background: rgba(108, 76, 255, 0.1); }
+    .primary:hover, .secondary:hover, .icon-btn:hover { transform: translateY(-1px); }
+
+    .lists {
+      display: grid;
+      gap: 8px;
+      max-height: 520px;
+      padding: 12px;
+      overflow-y: auto;
+    }
+
+    .list-button {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      padding: 11px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      color: var(--ink);
+      text-align: left;
+      background: transparent;
+      transition: 150ms ease;
+    }
+
+    .list-button:hover { background: #f6f3ff; }
+    .list-button.active { border-color: rgba(108, 76, 255, 0.22); background: rgba(108, 76, 255, 0.1); }
+
+    .list-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      background: var(--lime);
+    }
+
+    .list-button:nth-child(3n + 2) .list-icon { background: #ded7ff; }
+    .list-button:nth-child(3n) .list-icon { background: #ffe1de; }
+
+    .list-name {
+      display: block;
+      overflow: hidden;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .list-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 0.76rem; }
+
+    .count-badge {
+      display: grid;
+      place-items: center;
+      min-width: 30px;
+      height: 30px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: var(--purple);
+      font-size: 0.78rem;
+      font-weight: 950;
+      background: white;
+    }
+
+    .sidebar-empty { padding: 28px 18px; color: var(--muted); text-align: center; font-size: 0.86rem; }
+
+    .content { min-height: 480px; overflow: hidden; }
+
+    .content-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .content-title { min-width: 0; }
+    .content-title h3 { overflow-wrap: anywhere; font-size: 1.35rem; }
+
+    .list-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .icon-btn { padding: 9px 12px; color: var(--ink); background: #f1eff7; }
+    .icon-btn.danger { color: #c23e36; background: #fff0ee; }
+
+    .item-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 145px auto;
+      gap: 10px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfaff;
+    }
+
+    .items {
+      display: grid;
+      gap: 10px;
+      padding: 18px 20px 22px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 13px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: white;
+      box-shadow: 0 8px 20px rgba(37, 28, 85, 0.05);
+      transition: opacity 320ms ease, transform 320ms ease, max-height 320ms ease, padding 320ms ease;
+    }
+
+    .item.removing {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-width: 0;
+      opacity: 0;
+      transform: translateX(40px) scale(0.96);
+    }
+
+    .check-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+    }
+
+    .check-wrap input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .custom-check {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 2px solid #cbc6da;
+      border-radius: 9px;
+      color: transparent;
+      font-weight: 1000;
+      background: white;
+      transition: 150ms ease;
+    }
+
+    .check-wrap:hover .custom-check { border-color: var(--purple); transform: scale(1.06); }
+    .check-wrap input:focus-visible + .custom-check { box-shadow: 0 0 0 4px rgba(108, 76, 255, 0.16); }
+    .check-wrap input:checked + .custom-check { border-color: var(--lime); color: var(--ink); background: var(--lime); }
+
+    .item-copy { min-width: 0; }
+    .item-copy strong { display: block; overflow-wrap: anywhere; font-size: 0.96rem; }
+
+    .priority {
+      display: inline-flex;
+      margin-top: 5px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 900;
+      background: #f3f1f8;
+    }
+
+    .priority.alta { color: #bd3f37; background: #ffe8e5; }
+    .priority.media { color: #956b09; background: #fff3ce; }
+
+    .remove-item {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 1.1rem;
+      background: transparent;
+    }
+
+    .remove-item:hover { color: #c23e36; background: #fff0ee; }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 280px;
+      padding: 32px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-visual {
+      display: grid;
+      place-items: center;
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 14px;
+      border-radius: 26px;
+      color: var(--ink);
+      font-size: 2rem;
+      background: var(--lime);
+      transform: rotate(-4deg);
+    }
+
+    .empty h3 { margin: 0; color: var(--ink); }
+    .empty p { max-width: 400px; margin: 7px auto 0; font-size: 0.9rem; }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      right: 22px;
+      bottom: 22px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      max-width: min(420px, calc(100% - 32px));
+      padding: 14px 16px;
+      border-radius: 17px;
+      color: white;
+      background: var(--ink);
+      box-shadow: 0 18px 45px rgba(23, 21, 45, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: 220ms ease;
+    }
+
+    .toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .toast span { font-size: 0.86rem; font-weight: 800; }
+    .toast button { border: 0; color: var(--lime); font-weight: 950; background: transparent; }
+
+    @media (max-width: 860px) {
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .lists { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+    }
+
+    @media (max-width: 640px) {
+      .app { width: min(100% - 20px, 1240px); padding-top: 14px; }
+      .topbar { align-items: flex-start; }
+      .brand p { display: none; }
+      .cloud-controls { align-items: flex-end; flex-direction: column; }
+      .save-status { font-size: 0.72rem; }
+      .connection-alert { grid-template-columns: auto minmax(0, 1fr); }
+      .connection-alert .retry-sync { grid-column: 1 / -1; }
+      .hero { grid-template-columns: 1fr; padding: 24px; }
+      .hero-score { width: fit-content; min-width: 150px; text-align: left; }
+      .metrics { grid-template-columns: 1fr; }
+      .lists { grid-template-columns: 1fr; }
+      .content-head { display: grid; }
+      .list-actions { justify-content: flex-start; }
+      .item-form { grid-template-columns: 1fr; }
+    }
+
+    .settings-fab { position: fixed; z-index: 18; left: 22px; bottom: 22px; border: 0; border-radius: 999px; padding: 12px 16px; color: white; font-weight: 900; background: var(--purple); box-shadow: var(--shadow); }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(23,21,45,.52); backdrop-filter: blur(6px); }
+    .modal-backdrop[hidden] { display: none; }
+    .settings-card, .install-card { width: min(560px, 100%); max-height: min(760px, calc(100vh - 36px)); overflow: auto; border-radius: 26px; background: white; box-shadow: 0 28px 80px rgba(23,21,45,.32); }
+    .modal-head { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:20px; border-bottom:1px solid var(--line); }
+    .modal-head h3, .modal-head p { margin:0; } .modal-head p { margin-top:4px; color:var(--muted); font-size:.84rem; }
+    .modal-close { width:38px; height:38px; border:0; border-radius:12px; font-size:1.25rem; background:#f1eff7; }
+    .settings-body { display:grid; gap:16px; padding:20px; }
+    .setting-box { padding:16px; border:1px solid var(--line); border-radius:18px; background:#fbfaff; }
+    .setting-box strong { display:block; margin-bottom:5px; } .setting-box p { margin:0 0 12px; color:var(--muted); font-size:.84rem; }
+    .setting-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .install-card { padding:24px; text-align:center; } .install-mark { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 14px; border-radius:22px; font-size:2rem; background:var(--lime); }
+    .install-card h3 { margin:0; font-size:1.45rem; } .install-card p { color:var(--muted); }
+    .install-actions { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .notice-banner { position:fixed; z-index:19; top:18px; left:50%; width:min(520px,calc(100% - 32px)); padding:14px 16px; border-radius:17px; color:white; background:var(--ink); box-shadow:var(--shadow); transform:translate(-50%,-130%); opacity:0; transition:220ms ease; }
+    .notice-banner.show { transform:translate(-50%,0); opacity:1; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">✓</div>
+        <div>
+          <h1>Listo</h1>
+          <p>Todos tus listados en un solo lugar</p>
+        </div>
+      </div>
+      <div class="cloud-controls">
+        <div class="save-status connecting" id="saveStatus">Conectando con Firebase...</div>
+        <button class="retry-sync" type="button" id="retryFirebase" hidden>Reintentar</button>
+      </div>
+    </header>
+
+    <section class="connection-alert" id="connectionAlert" hidden>
+      <div class="connection-alert-icon">!</div>
+      <div>
+        <strong id="connectionTitle">Firebase necesita configuración</strong>
+        <span id="connectionMessage"></span>
+      </div>
+      <button class="retry-sync" type="button" id="retryFirebaseAlert">Probar conexión</button>
+    </section>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Organiza · Completa · Avanza</p>
+        <h2>Menos pendientes. Más cosas terminadas.</h2>
+        <p>Crea todos los listados que necesites. Marca un elemento cuando esté listo y desaparecerá automáticamente.</p>
+      </div>
+      <div class="hero-score">
+        <strong id="heroCompleted">0</strong>
+        <span>elementos completados</span>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Resumen">
+      <article class="metric"><span>Listados guardados</span><strong id="totalLists">0</strong></article>
+      <article class="metric"><span>Elementos pendientes</span><strong id="totalItems">0</strong></article>
+      <article class="metric"><span>Completados</span><strong id="totalCompleted">0</strong></article>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel sidebar">
+        <div class="sidebar-head">
+          <h3>Mis listados</h3>
+          <p>Crea y abre cualquier listado guardado.</p>
+          <form class="new-list-form" id="newListForm">
+            <input id="newListName" type="text" maxlength="60" placeholder="Nombre del listado" aria-label="Nombre del nuevo listado" required>
+            <button class="primary" type="submit" aria-label="Crear listado">＋</button>
+          </form>
+        </div>
+        <div class="lists" id="listsContainer"></div>
+      </aside>
+
+      <section class="panel content" id="contentPanel">
+        <div id="listView" hidden>
+          <div class="content-head">
+            <div class="content-title">
+              <h3 id="activeListName">Listado</h3>
+              <p id="activeListMeta">0 elementos pendientes</p>
+            </div>
+            <div class="list-actions">
+              <button class="icon-btn" type="button" id="renameList">Renombrar</button>
+              <button class="icon-btn danger" type="button" id="deleteList">Eliminar listado</button>
+            </div>
+          </div>
+
+          <form class="item-form" id="newItemForm">
+            <input id="newItemText" type="text" maxlength="140" placeholder="¿Qué necesitas completar?" aria-label="Nuevo elemento" required>
+            <select id="newItemPriority" aria-label="Prioridad">
+              <option value="normal">Prioridad normal</option>
+              <option value="media">Prioridad media</option>
+              <option value="alta">Prioridad alta</option>
+            </select>
+            <button class="primary" type="submit">Agregar</button>
+          </form>
+
+          <div class="items" id="itemsContainer"></div>
+        </div>
+
+        <div class="empty" id="welcomeView">
+          <div>
+            <div class="empty-visual">☰</div>
+            <h3>Crea tu primer listado</h3>
+            <p>Escribe un nombre en el panel de la izquierda. Después podrás agregar y completar todos sus elementos.</p>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+
+  <button class="settings-fab" type="button" id="openSettings">⚙ Configuración</button>
+  <div class="notice-banner" id="noticeBanner" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <section class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head"><div><h3 id="settingsTitle">Configuración</h3><p>Instalación y avisos de Listo.</p></div><button class="modal-close" type="button" data-close-settings>×</button></div>
+      <div class="settings-body">
+        <div class="setting-box"><strong>Instalar aplicación</strong><p>Instala Listo como PWA para abrirlo como una aplicación independiente.</p><div class="setting-actions"><button class="primary" type="button" id="installFromSettings">Instalar PWA</button></div></div>
+        <div class="setting-box"><strong>Notificaciones</strong><p>Elige la frecuencia. Las alertas del dispositivo requieren permiso del navegador.</p><select id="notificationMode"><option value="off">Suspendidas</option><option value="daily">Una al día</option><option value="active">Activas mientras uso Listo</option></select><div class="setting-actions" style="margin-top:10px"><button class="primary" type="button" id="requestNotifications">Activar permiso</button><button class="secondary" type="button" id="testNotification">Probar notificación</button></div></div>
+        <div class="setting-box"><strong>Formato del aviso</strong><p>Ventana muestra avisos dentro del sistema. Dispositivo utiliza las notificaciones del navegador.</p><select id="notificationFormat"><option value="window">Ventana dentro de Listo</option><option value="device">Notificación del dispositivo</option><option value="both">Ambas</option></select></div>
+        <div class="setting-box"><strong>Estado</strong><p id="notificationStatus">Comprobando permisos...</p></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="installPrompt" hidden>
+    <section class="install-card" role="dialog" aria-modal="true" aria-labelledby="installTitle"><div class="install-mark">↓</div><h3 id="installTitle">Instala Listo</h3><p>Ten tus listados a un toque y usa el sistema como una aplicación.</p><div class="install-actions"><button class="primary" type="button" id="installPwa">Instalar aplicación</button><button class="secondary" type="button" id="dismissInstall">Ahora no</button></div></section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage">Elemento completado y eliminado.</span>
+    <button type="button" id="undoButton">Deshacer</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+    (function () {
+      "use strict";
+
+      var STORAGE_KEY = "listo-web-data-v1";
+      var ADMIN_UID = "IgAtEOESV8REP3qKYAvAAWGh5ol2";
+      var firebaseConfig = {
+        apiKey: "AIzaSyAIRX7dCzFvK59oH2nV09kjRl_bToUVLJs",
+        authDomain: "crn-rpm.firebaseapp.com",
+        projectId: "crn-rpm",
+        storageBucket: "crn-rpm.firebasestorage.app",
+        messagingSenderId: "1064708742191",
+        appId: "1:1064708742191:web:7ee972efeeaa0eec3efada"
+      };
+      var state = loadState();
+      var lastRemoved = null;
+      var toastTimer = null;
+      var cloudTimer = null;
+      var cloudDocument = null;
+      var cloudReady = false;
+      var applyingRemote = false;
+      var firebaseFailed = false;
+      var firebaseApp = null;
+      var firebaseAuth = null;
+      var firebaseDatabase = null;
+      var authObserverStarted = false;
+      var unsubscribeSnapshot = null;
+      var isAdminSession = false;
+      var deferredInstallPrompt = null;
+      var notificationTimer = null;
+      var PWA_PROMPT_COUNT_KEY = "listo-pwa-prompt-count-v1";
+      var NOTIFICATION_SETTINGS_KEY = "listo-notification-settings-v1";
+
+      var elements = {
+        totalLists: document.querySelector("#totalLists"),
+        totalItems: document.querySelector("#totalItems"),
+        totalCompleted: document.querySelector("#totalCompleted"),
+        heroCompleted: document.querySelector("#heroCompleted"),
+        listsContainer: document.querySelector("#listsContainer"),
+        listView: document.querySelector("#listView"),
+        welcomeView: document.querySelector("#welcomeView"),
+        activeListName: document.querySelector("#activeListName"),
+        activeListMeta: document.querySelector("#activeListMeta"),
+        itemsContainer: document.querySelector("#itemsContainer"),
+        newListForm: document.querySelector("#newListForm"),
+        newListName: document.querySelector("#newListName"),
+        newItemForm: document.querySelector("#newItemForm"),
+        newItemText: document.querySelector("#newItemText"),
+        newItemPriority: document.querySelector("#newItemPriority"),
+        renameList: document.querySelector("#renameList"),
+        deleteList: document.querySelector("#deleteList"),
+        toast: document.querySelector("#toast"),
+        toastMessage: document.querySelector("#toastMessage"),
+        undoButton: document.querySelector("#undoButton"),
+        saveStatus: document.querySelector("#saveStatus"),
+        retryFirebase: document.querySelector("#retryFirebase"),
+        retryFirebaseAlert: document.querySelector("#retryFirebaseAlert"),
+        connectionAlert: document.querySelector("#connectionAlert"),
+        connectionTitle: document.querySelector("#connectionTitle"),
+        connectionMessage: document.querySelector("#connectionMessage"),
+        openSettings: document.querySelector("#openSettings"), settingsModal: document.querySelector("#settingsModal"), installPrompt: document.querySelector("#installPrompt"),
+        installPwa: document.querySelector("#installPwa"), dismissInstall: document.querySelector("#dismissInstall"), installFromSettings: document.querySelector("#installFromSettings"),
+        notificationMode: document.querySelector("#notificationMode"), notificationFormat: document.querySelector("#notificationFormat"), requestNotifications: document.querySelector("#requestNotifications"),
+        testNotification: document.querySelector("#testNotification"), notificationStatus: document.querySelector("#notificationStatus"), noticeBanner: document.querySelector("#noticeBanner")
+      };
+
+      function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      }
+
+      function loadState() {
+        try {
+          var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (saved && Array.isArray(saved.lists)) {
+            return {
+              lists: saved.lists,
+              activeListId: saved.activeListId || (saved.lists[0] ? saved.lists[0].id : null),
+              completedCount: Number(saved.completedCount || 0)
+            };
+          }
+        } catch (error) {
+          console.warn("No fue posible recuperar los listados.", error);
+        }
+        return { lists: [], activeListId: null, completedCount: 0 };
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (cloudReady && !applyingRemote) {
+          scheduleCloudSave();
+        } else if (firebaseFailed) {
+          setConnectionStatus("Guardado localmente", "offline");
+        }
+      }
+
+      function normalizeState(data) {
+        var lists = Array.isArray(data && data.lists) ? data.lists : [];
+        lists = lists.map(function (list) {
+          return {
+            id: String(list.id || uid()),
+            name: String(list.name || "Listado").slice(0, 60),
+            createdAt: Number(list.createdAt || Date.now()),
+            items: Array.isArray(list.items) ? list.items.map(function (item) {
+              return {
+                id: String(item.id || uid()),
+                text: String(item.text || "").slice(0, 140),
+                priority: ["normal", "media", "alta"].includes(item.priority) ? item.priority : "normal",
+                createdAt: Number(item.createdAt || Date.now())
+              };
+            }).filter(function (item) { return item.text; }) : []
+          };
+        });
+        return {
+          lists: lists,
+          activeListId: data && data.activeListId ? String(data.activeListId) : (lists[0] ? lists[0].id : null),
+          completedCount: Math.max(0, Number(data && data.completedCount || 0))
+        };
+      }
+
+      function setConnectionStatus(message, mode) {
+        elements.saveStatus.textContent = message;
+        elements.saveStatus.className = "save-status" + (mode ? " " + mode : "");
+      }
+
+      function synchronizedMessage() {
+        return isAdminSession ? "Sincronizado · Administrador" : "Sincronizado con Firebase";
+      }
+
+      function hideConnectionError() {
+        elements.connectionAlert.hidden = true;
+        elements.retryFirebase.hidden = true;
+        elements.saveStatus.removeAttribute("title");
+      }
+
+      function firebaseErrorInfo(error) {
+        var code = String(error && error.code || "firebase/error");
+        var message = "Revisa la conexión, la configuración del proyecto y vuelve a intentar.";
+        var title = "No fue posible conectar con Firebase";
+
+        if (code.includes("operation-not-allowed") || code.includes("admin-restricted-operation") || code.includes("configuration-not-found")) {
+          title = "Activa la autenticación anónima";
+          message = "En Firebase abre Authentication → Sign-in method → Anonymous, actívalo y guarda los cambios.";
+        } else if (code.includes("permission-denied")) {
+          title = "Firestore rechazó el acceso";
+          message = "Publica el archivo firestore.rules en Firestore Database → Rules y confirma que el usuario Anónimo esté activo.";
+        } else if (code.includes("failed-precondition") || code.includes("not-found")) {
+          title = "Crea la base de datos Firestore";
+          message = "En Firebase abre Firestore Database, crea la base de datos y después publica las reglas entregadas.";
+        } else if (code.includes("unauthorized-domain")) {
+          title = "Dominio no autorizado";
+          message = "Agrega el dominio actual en Authentication → Settings → Authorized domains. Evita abrir el archivo con file://.";
+        } else if (code.includes("network-request-failed") || code.includes("unavailable")) {
+          title = "Firebase no tiene conexión de red";
+          message = "Comprueba internet, bloqueadores del navegador y que el sitio se ejecute mediante HTTPS o un servidor local.";
+        } else if (error && error.message) {
+          message = String(error.message).replace(/^Firebase:\s*/i, "");
+        }
+
+        return { title: title, message: message, code: code };
+      }
+
+      function showConnectionError(error) {
+        var info = firebaseErrorInfo(error);
+        firebaseFailed = true;
+        cloudReady = false;
+        setConnectionStatus("Modo local · " + info.code, "offline");
+        elements.saveStatus.setAttribute("title", info.message);
+        elements.connectionTitle.textContent = info.title;
+        elements.connectionMessage.textContent = info.message + " Código: " + info.code;
+        elements.connectionAlert.hidden = false;
+        elements.retryFirebase.hidden = false;
+      }
+
+      function scheduleCloudSave() {
+        window.clearTimeout(cloudTimer);
+        setConnectionStatus("Guardando en Firebase...", "connecting");
+        cloudTimer = window.setTimeout(writeCloudState, 450);
+      }
+
+      async function writeCloudState() {
+        if (!cloudDocument || !cloudReady) return;
+        try {
+          await setDoc(cloudDocument, {
+            lists: state.lists,
+            activeListId: state.activeListId,
+            completedCount: state.completedCount,
+            updatedAt: serverTimestamp()
+          });
+          firebaseFailed = false;
+          hideConnectionError();
+          setConnectionStatus(synchronizedMessage(), "");
+        } catch (error) {
+          console.warn("No fue posible guardar en Firebase.", error);
+          showConnectionError(error);
+        }
+      }
+
+      function watchCloudState(user) {
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        cloudDocument = doc(firebaseDatabase, "users", user.uid, "app", "state");
+        cloudReady = true;
+        unsubscribeSnapshot = onSnapshot(cloudDocument, function (snapshot) {
+          firebaseFailed = false;
+          hideConnectionError();
+          if (snapshot.exists()) {
+            var remoteState = normalizeState(snapshot.data());
+            if (JSON.stringify(remoteState) !== JSON.stringify(state)) {
+              applyingRemote = true;
+              state = remoteState;
+              render();
+              applyingRemote = false;
+            }
+            setConnectionStatus(synchronizedMessage(), "");
+          } else {
+            writeCloudState();
+          }
+        }, function (error) {
+          console.warn("No fue posible leer desde Firebase.", error);
+          showConnectionError(error);
+        });
+      }
+
+      async function connectFirebase() {
+        setConnectionStatus("Conectando con Firebase...", "connecting");
+        elements.retryFirebase.hidden = true;
+        try {
+          if (!firebaseApp) {
+            firebaseApp = initializeApp(firebaseConfig);
+            firebaseAuth = getAuth(firebaseApp);
+            firebaseDatabase = getFirestore(firebaseApp);
+          }
+
+          if (!authObserverStarted) {
+            authObserverStarted = true;
+            onAuthStateChanged(firebaseAuth, function (user) {
+              if (user) {
+                isAdminSession = user.uid === ADMIN_UID;
+                watchCloudState(user);
+              }
+            });
+          }
+
+          if (firebaseAuth.currentUser) {
+            isAdminSession = firebaseAuth.currentUser.uid === ADMIN_UID;
+            watchCloudState(firebaseAuth.currentUser);
+          } else {
+            await signInAnonymously(firebaseAuth);
+          }
+        } catch (error) {
+          console.warn("Firebase no está disponible; se usará almacenamiento local.", error);
+          showConnectionError(error);
+        }
+      }
+
+      function escapeHTML(value) {
+        return String(value || "").replace(/[&<>'"]/g, function (character) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[character];
+        });
+      }
+
+      function getActiveList() {
+        return state.lists.find(function (list) { return list.id === state.activeListId; }) || null;
+      }
+
+      function totalPending() {
+        return state.lists.reduce(function (total, list) { return total + list.items.length; }, 0);
+      }
+
+      function plural(count, singular, pluralText) {
+        return count === 1 ? singular : pluralText;
+      }
+
+      function renderMetrics() {
+        elements.totalLists.textContent = state.lists.length;
+        elements.totalItems.textContent = totalPending();
+        elements.totalCompleted.textContent = state.completedCount;
+        elements.heroCompleted.textContent = state.completedCount;
+      }
+
+      function renderLists() {
+        if (!state.lists.length) {
+          elements.listsContainer.innerHTML = '<div class="sidebar-empty">Aún no tienes listados guardados.</div>';
+          return;
+        }
+
+        elements.listsContainer.innerHTML = state.lists.map(function (list) {
+          var active = list.id === state.activeListId ? " active" : "";
+          var itemWord = plural(list.items.length, "elemento", "elementos");
+          return '<button class="list-button' + active + '" type="button" data-list-id="' + list.id + '">' +
+            '<span class="list-icon">✓</span>' +
+            '<span><span class="list-name">' + escapeHTML(list.name) + '</span>' +
+            '<span class="list-meta">' + list.items.length + " " + itemWord + '</span></span>' +
+            '<span class="count-badge">' + list.items.length + '</span>' +
+          '</button>';
+        }).join("");
+      }
+
+      function renderActiveList() {
+        var list = getActiveList();
+        var hasList = Boolean(list);
+        elements.listView.hidden = !hasList;
+        elements.welcomeView.hidden = hasList;
+        if (!list) return;
+
+        elements.activeListName.textContent = list.name;
+        elements.activeListMeta.textContent = list.items.length + " " + plural(list.items.length, "elemento pendiente", "elementos pendientes");
+
+        if (!list.items.length) {
+          elements.itemsContainer.innerHTML =
+            '<div class="empty"><div><div class="empty-visual">✓</div>' +
+            '<h3>Todo está al día</h3>' +
+            '<p>Agrega un nuevo elemento o disfruta de haber terminado este listado.</p></div></div>';
+          return;
+        }
+
+        var priorityOrder = { alta: 0, media: 1, normal: 2 };
+        var sortedItems = list.items.slice().sort(function (a, b) {
+          return priorityOrder[a.priority] - priorityOrder[b.priority] || a.createdAt - b.createdAt;
+        });
+
+        elements.itemsContainer.innerHTML = sortedItems.map(function (item) {
+          var priorityText = item.priority === "alta" ? "Alta prioridad" : item.priority === "media" ? "Prioridad media" : "Prioridad normal";
+          return '<article class="item" data-item-id="' + item.id + '">' +
+            '<label class="check-wrap" title="Marcar como completado">' +
+              '<input type="checkbox" data-complete-id="' + item.id + '" aria-label="Completar ' + escapeHTML(item.text) + '">' +
+              '<span class="custom-check">✓</span>' +
+            '</label>' +
+            '<div class="item-copy"><strong>' + escapeHTML(item.text) + '</strong>' +
+              '<span class="priority ' + item.priority + '">' + priorityText + '</span></div>' +
+            '<button class="remove-item" type="button" data-remove-id="' + item.id + '" aria-label="Eliminar elemento" title="Eliminar">×</button>' +
+          '</article>';
+        }).join("");
+      }
+
+      function render() {
+        if (state.activeListId && !getActiveList()) {
+          state.activeListId = state.lists[0] ? state.lists[0].id : null;
+        }
+        renderMetrics();
+        renderLists();
+        renderActiveList();
+        saveState();
+      }
+
+      function createList(name) {
+        var list = { id: uid(), name: name.trim(), items: [], createdAt: Date.now() };
+        state.lists.unshift(list);
+        state.activeListId = list.id;
+        render();
+        elements.newItemText.focus();
+      }
+
+      function addItem(text, priority) {
+        var list = getActiveList();
+        if (!list) return;
+        list.items.push({ id: uid(), text: text.trim(), priority: priority, createdAt: Date.now() });
+        render();
+      }
+
+      function removeItem(itemId, completed) {
+        var list = getActiveList();
+        if (!list) return;
+        var index = list.items.findIndex(function (item) { return item.id === itemId; });
+        if (index < 0) return;
+
+        lastRemoved = { item: list.items[index], listId: list.id, index: index, completed: completed };
+        list.items.splice(index, 1);
+        if (completed) state.completedCount += 1;
+        render();
+        showToast(completed ? "Elemento completado y eliminado." : "Elemento eliminado.");
+      }
+
+      function completeItem(itemId, checkbox) {
+        var card = checkbox.closest(".item");
+        if (card) card.classList.add("removing");
+        window.setTimeout(function () { removeItem(itemId, true); }, 330);
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        elements.toastMessage.textContent = message;
+        elements.toast.classList.add("show");
+        toastTimer = window.setTimeout(function () {
+          elements.toast.classList.remove("show");
+          lastRemoved = null;
+        }, 5000);
+      }
+
+      function undoLastRemoval() {
+        if (!lastRemoved) return;
+        var list = state.lists.find(function (candidate) { return candidate.id === lastRemoved.listId; });
+        if (list) {
+          list.items.splice(Math.min(lastRemoved.index, list.items.length), 0, lastRemoved.item);
+          if (lastRemoved.completed) state.completedCount = Math.max(0, state.completedCount - 1);
+          state.activeListId = list.id;
+        }
+        lastRemoved = null;
+        elements.toast.classList.remove("show");
+        render();
+      }
+
+      function getNotificationSettings() { try { return Object.assign({mode:"off", format:"window", lastDaily:""}, JSON.parse(localStorage.getItem(NOTIFICATION_SETTINGS_KEY)||"{}")); } catch(e) { return {mode:"off", format:"window", lastDaily:""}; } }
+      function saveNotificationSettings(settings) { localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings)); updateNotificationUI(); scheduleNotifications(); }
+      function updateNotificationUI() { var settings=getNotificationSettings(); elements.notificationMode.value=settings.mode; elements.notificationFormat.value=settings.format; var supported="Notification" in window; elements.notificationStatus.textContent=!supported?"Este navegador no admite notificaciones.":("Permiso del dispositivo: "+Notification.permission+(settings.mode==="off"?" · avisos suspendidos":"")); }
+      function showInAppNotice(message) { elements.noticeBanner.textContent=message; elements.noticeBanner.classList.add("show"); window.setTimeout(function(){elements.noticeBanner.classList.remove("show");},5000); }
+      async function sendListoNotification(message) { var settings=getNotificationSettings(); if(settings.format==="window"||settings.format==="both") showInAppNotice(message); if((settings.format==="device"||settings.format==="both")&&"Notification" in window&&Notification.permission==="granted") { try { if(navigator.serviceWorker&&navigator.serviceWorker.ready){ var reg=await navigator.serviceWorker.ready; await reg.showNotification("Listo",{body:message,icon:"./icon-192.svg",badge:"./icon-192.svg",tag:"listo-reminder"}); } else { new Notification("Listo",{body:message}); } } catch(e){ console.warn("No fue posible mostrar la notificación.",e); } } }
+      function reminderMessage() { var pending=totalPending(); return pending?"Tienes "+pending+" "+plural(pending,"pendiente","pendientes")+" en tus listados.":"Todo está al día en Listo."; }
+      function scheduleNotifications() { window.clearInterval(notificationTimer); var settings=getNotificationSettings(); if(settings.mode==="off") return; if(settings.mode==="daily") { var today=new Date().toISOString().slice(0,10); if(settings.lastDaily!==today){ sendListoNotification(reminderMessage()); settings.lastDaily=today; localStorage.setItem(NOTIFICATION_SETTINGS_KEY,JSON.stringify(settings)); } notificationTimer=window.setInterval(scheduleNotifications,60*60*1000); } else if(settings.mode==="active") { notificationTimer=window.setInterval(function(){ if(!document.hidden) sendListoNotification(reminderMessage()); },60*60*1000); } }
+      function pwaInstalled() { return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true; }
+      function maybeShowInstallPrompt() { if(pwaInstalled()) return; var count=Number(localStorage.getItem(PWA_PROMPT_COUNT_KEY)||0); if(count>=3) return; elements.installPrompt.hidden=false; localStorage.setItem(PWA_PROMPT_COUNT_KEY,String(count+1)); }
+      async function triggerInstall() { if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; elements.installPrompt.hidden=true; } else { showInAppNotice("Si el botón de instalación no aparece, usa el menú del navegador y elige Instalar aplicación o Agregar a pantalla de inicio."); } }
+      window.addEventListener("beforeinstallprompt",function(event){ event.preventDefault(); deferredInstallPrompt=event; });
+      window.addEventListener("appinstalled",function(){ elements.installPrompt.hidden=true; localStorage.setItem(PWA_PROMPT_COUNT_KEY,"3"); showInAppNotice("Listo se instaló correctamente."); });
+      if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("./sw.js").catch(function(e){console.warn("Service Worker no disponible.",e);}); }); }
+      elements.openSettings.addEventListener("click",function(){ elements.settingsModal.hidden=false; updateNotificationUI(); });
+      document.querySelectorAll("[data-close-settings]").forEach(function(button){button.addEventListener("click",function(){elements.settingsModal.hidden=true;});});
+      elements.installPwa.addEventListener("click",triggerInstall); elements.installFromSettings.addEventListener("click",triggerInstall); elements.dismissInstall.addEventListener("click",function(){elements.installPrompt.hidden=true;});
+      elements.notificationMode.addEventListener("change",function(){var s=getNotificationSettings();s.mode=this.value;saveNotificationSettings(s);});
+      elements.notificationFormat.addEventListener("change",function(){var s=getNotificationSettings();s.format=this.value;saveNotificationSettings(s);});
+      elements.requestNotifications.addEventListener("click",async function(){ if(!("Notification" in window)) return updateNotificationUI(); var result=await Notification.requestPermission(); updateNotificationUI(); if(result==="granted") sendListoNotification("Las notificaciones de Listo están activadas."); });
+      elements.testNotification.addEventListener("click",function(){sendListoNotification("Esta es una notificación de prueba de Listo.");});
+      updateNotificationUI(); scheduleNotifications(); window.setTimeout(maybeShowInstallPrompt,1800);
+
+      elements.newListForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var name = elements.newListName.value.trim();
+        if (!name) return;
+        createList(name);
+        elements.newListForm.reset();
+      });
+
+      elements.newItemForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var text = elements.newItemText.value.trim();
+        if (!text) return;
+        addItem(text, elements.newItemPriority.value);
+        elements.newItemForm.reset();
+        elements.newItemPriority.value = "normal";
+        elements.newItemText.focus();
+      });
+
+      elements.listsContainer.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-list-id]");
+        if (!button) return;
+        state.activeListId = button.dataset.listId;
+        render();
+      });
+
+      elements.itemsContainer.addEventListener("change", function (event) {
+        var checkbox = event.target.closest("[data-complete-id]");
+        if (checkbox && checkbox.checked) completeItem(checkbox.dataset.completeId, checkbox);
+      });
+
+      elements.itemsContainer.addEventListener("click", function (event) {
+        var removeButton = event.target.closest("[data-remove-id]");
+        if (removeButton) removeItem(removeButton.dataset.removeId, false);
+      });
+
+      elements.renameList.addEventListener("click", function () {
+        var list = getActiveList();
+        if (!list) return;
+        var newName = window.prompt("Nuevo nombre del listado:", list.name);
+        if (newName && newName.trim()) {
+          list.name = newName.trim().slice(0, 60);
+          render();
+        }
+      });
+
+      elements.deleteList.addEventListener("click", function () {
+        var list = getActiveList();
+        if (!list) return;
+        var confirmed = window.confirm('¿Eliminar el listado "' + list.name + '" y todos sus elementos?');
+        if (!confirmed) return;
+        state.lists = state.lists.filter(function (candidate) { return candidate.id !== list.id; });
+        state.activeListId = state.lists[0] ? state.lists[0].id : null;
+        render();
+      });
+
+      elements.undoButton.addEventListener("click", undoLastRemoval);
+      elements.retryFirebase.addEventListener("click", connectFirebase);
+      elements.retryFirebaseAlert.addEventListener("click", connectFirebase);
+      render();
+      connectFirebase();
+    })();
+  </script>
+</body>
+</html>
